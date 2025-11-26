@@ -1,0 +1,45 @@
+import pandas as pd
+
+# Load Excel file
+df = pd.read_excel("data/Job_titles.xlsx")
+
+# Normalize text
+cleaned = (
+    df['Job titles']
+    .str.lower()
+    .str.strip()
+    .str.replace(r"\s+", " ", regex=True)
+    # Common variant collapses
+    .str.replace("dotnet", ".net", regex=False)
+    .str.replace("c#", "csharp", regex=False)
+)
+
+# Remove modifiers that don't change the core role
+modifiers = [
+    "senior", "jr", "junior", "assistant", "assoc", "associate",
+    "lead", "principal", "avp", "svp", "vp", "director",
+    "manager", "head", "chief"
+]
+for m in modifiers:
+    cleaned = cleaned.str.replace(rf"\b{m}\b", "", regex=True)
+
+# Collapse tech duplicates (examples; extend as needed)
+rules = {
+    ".net software developer": ".net developer",
+    ".net system developer": ".net developer",
+    "backend java engineer": "java developer",
+    "backend python developer": "python developer",
+    "front end developer": "frontend developer",
+    "fullstack engineer": "full stack developer",
+    "csharp developer": "c# developer",
+}
+cleaned = cleaned.replace(rules, regex=False)
+
+# Final tidy: remove extra spaces
+cleaned = cleaned.str.replace(r"\s+", " ", regex=True).str.strip()
+
+# Output deduplicated, sorted list
+out = pd.Series(sorted(set(cleaned))).rename("cleaned_title")
+out.to_csv("data/cleaned_job_titles.csv", index=False, encoding="utf-8")
+
+print("Saved: data/cleaned_job_titles.csv")
